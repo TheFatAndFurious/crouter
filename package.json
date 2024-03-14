@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "dev": "bun --watch run ./src/index.ts"
+  },
+  "name": "crouter",
+  "version": "0.1.0",
+  "main": "./src/index.js",
+  "description": "a suspect bun router",
+  "module": "./src/index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "nvm": "^0.0.4"
+  }
+}
