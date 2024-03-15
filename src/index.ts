@@ -1,19 +1,17 @@
 import Bun from "bun";
 import { fakeCallback, fakePost } from "./users/usersController";
-import { fakeMiddleware } from "./middlewares/testMiddleware";
-import { encoreUnTest } from "./middlewares/anotherMid";
 
 type HttpMethods = "GET" | "POST" | "PUT" | "PATCH";
 type RouteHandler =
-  | ((request: Request, res: Response) => Promise<Response> | void)
-  | ((request: Request, response: Response) => Response | void);
+  | ((request: Request, params: URLSearchParams) => Promise<Response>)
+  | ((request: Request, params: URLSearchParams) => Response);
 
 interface Route {
   route: string;
   path: string;
-  methods: Record<HttpMethods, RouteHandler>;
+  methods: Partial<Record<HttpMethods, RouteHandler>>;
   middlewares: Function[];
-  queries: HttpMethods[];
+  queries: string[];
 }
 
 const routes = [
@@ -21,18 +19,10 @@ const routes = [
     route: "home",
     path: "home",
     queries: ["authors", "tags"],
-    methods: { GET: fakeCallback, POST: fakePost },
-    middlewares: [fakeMiddleware, encoreUnTest],
+    methods: {},
+    middlewares: [],
   },
 ];
-
-interface Route {
-  route: string;
-  path: string;
-  queries: Array<string>;
-  methods: { [key: string]: Function };
-  middlewares: Array<Function>;
-}
 
 Bun.serve({
   fetch(request: Request): Response | Promise<Response> {
@@ -42,7 +32,6 @@ Bun.serve({
 
 //TODO: Type everything
 //TODO: Handle errors
-//TODO: Handle PUT, PATCH, DELETE methods
 //TODO: Find a way to handle subroutes
 
 function splitPath(path: string) {
@@ -66,12 +55,9 @@ export async function Router(
     return new Response("welcome home");
   }
 
-  // Here we get the search params
-  const searchParams = url.searchParams;
-
   // Checking if the first segment of the pathname has a corresponding route
   const routeExists = routes.find(
-    (route: any) => route.path === splittedPath[0]
+    (route: Route) => route.path === splittedPath[0]
   );
 
   //if not you're getting an error
@@ -79,8 +65,13 @@ export async function Router(
     return new Response("route not found");
   }
 
+  //checking if the provided method is valid
+  if (!["GET", "POST", "PUT", "PATCH"].includes(reqMethod)) {
+    return new Response("method not allowed");
+  }
+
   // checking if the method is allowed for that route
-  const methodAllowed = routeExists.methods[reqMethod];
+  const methodAllowed = routeExists.methods[reqMethod as HttpMethods];
 
   // if not you're getting an error
   if (!methodAllowed) {
@@ -94,15 +85,13 @@ export async function Router(
     }
   }
 
-  if (reqMethod === "POST") {
-    // if the method is POST we're going to run the callback associated to that route and provide him with the request.body
-    try {
-      const bodyData = await request.text();
-      return routeExists.methods[reqMethod](bodyData);
-    } catch (error: any) {
-      return new Response(error.message);
-    }
+  //TODO: check for the search params type
+  try {
+    return routeExists.methods[reqMethod as HttpMethods](
+      request,
+      url.searchParams as unknown as URLSearchParams
+    );
+  } catch (error: any) {
+    return new Response(error.message);
   }
-  // if the method is GET we're going to run the callback associated to that route and provide him with the request.searchParams
-  return routeExists.methods[reqMethod](searchParams);
 }
