@@ -1,13 +1,13 @@
 {
   "scripts": {
-    "dev": "bun --watch run ./src/index.ts"
+    "dev": "bun --watch run index.ts"
   },
   "name": "@2fat2furious/crouter",
   "author": "TheFatAndFurious",
   "version": "0.1.0",
-  "main": "./src/index.js",
+  "main": "index.js",
   "description": "a suspect bun router",
-  "module": "./src/index.ts",
+  "module": "index.ts",
   "keywords": [
     "router",
     "bun"
