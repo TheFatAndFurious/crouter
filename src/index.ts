@@ -6,6 +6,19 @@ import { fakeMiddleware } from "./middlewares/testMiddleware";
 import { encoreUnTest } from "./middlewares/anotherMid";
 initializeDb();
 
+type HttpMethods = "GET" | "POST" | "PUT" | "PATCH";
+type RouteHandler =
+  | ((request: Request, res: Response) => Promise<Response> | void)
+  | ((request: Request, response: Response) => Response | void);
+
+interface Route {
+  route: string;
+  path: string;
+  methods: Record<HttpMethods, RouteHandler>;
+  middlewares: Function[];
+  queries: HttpMethods[];
+}
+
 const routes = [
   {
     route: "home",
@@ -13,16 +26,6 @@ const routes = [
     queries: ["authors", "tags"],
     methods: { GET: fakeCallback, POST: fakePost },
     middlewares: [fakeMiddleware, encoreUnTest],
-  },
-  {
-    route: "about",
-    path: "about",
-    methods: ["POST"],
-  },
-  {
-    route: "contact",
-    path: "contact",
-    methods: ["GET"],
   },
 ];
 

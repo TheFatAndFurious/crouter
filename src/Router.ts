@@ -45,19 +45,13 @@ export async function Router(request: Request, routes: any): Promise<Response> {
   // if route and method are both ok we're going to run the middlewares associated to that route
   if (routeExists.middlewares.length > 0) {
     for (const middleware of routeExists.middlewares) {
-      await middleware();
+      await middleware(request);
     }
   }
 
-  if (reqMethod === "POST") {
-    // if the method is POST we're going to run the callback associated to that route and provide him with the request.body
-    try {
-      const bodyData = await request.text();
-      return routeExists.methods[reqMethod](bodyData);
-    } catch (error: any) {
-      return new Response(error.message);
-    }
+  try {
+    return routeExists.methods[reqMethod](request);
+  } catch (error: any) {
+    return new Response(error.message);
   }
-  // if the method is GET we're going to run the callback associated to that route and provide him with the request.searchParams
-  return routeExists.methods[reqMethod](searchParams);
 }
