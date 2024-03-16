@@ -11,11 +11,21 @@ export async function Router(
   //get url OK
   try {
     const url = new URL(request.url);
+    const reqMethod = request.method.toUpperCase();
     //parse url
     const splittedPath = splitPath(url.pathname);
     //get url keys if exist
     if (splittedPath.length == 0) {
-      return new Response("welcome home");
+      const rootRoute = routes.find((route) => route.path === "/");
+      const methodAllowed = rootRoute?.methods[reqMethod as HttpMethods];
+      if (rootRoute && methodAllowed) {
+        return methodAllowed(
+          request,
+          url.searchParams as unknown as URLSearchParams
+        );
+      } else {
+        return new Response("Route not found or invalid method");
+      }
     }
 
     let newUrl: string = "";
