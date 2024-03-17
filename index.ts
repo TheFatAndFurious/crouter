@@ -1,12 +1,16 @@
 import Bun from "bun";
-import type { Route, HttpMethods, RouteHandler } from "./types";
+import type { Route, HttpMethods, RouteHandler, RouteParams } from "./types";
 
-async function fakeHamdlerGET(request: Request, params: URLSearchParams) {
+async function fakeHamdlerGET(
+  request: Request,
+  params: URLSearchParams,
+  routeParams: RouteParams
+) {
   const paramsObject: Record<string, string> = {};
   const newParams = params.forEach((value, key) => {
     paramsObject[key] = value;
   });
-  console.log("🚀 ~ newParams ~ newParams:", paramsObject);
+  console.log("🚀 ~ newParams ~ newParams:", paramsObject, routeParams);
 
   return new Response(
     `search params: ${JSON.stringify(paramsObject, null, 2)}`
@@ -14,7 +18,8 @@ async function fakeHamdlerGET(request: Request, params: URLSearchParams) {
 }
 async function fakeHamdlerGETsecondlevel(
   request: Request,
-  params: URLSearchParams
+  params: URLSearchParams,
+  routeParams: RouteParams
 ) {
   const paramsObject: Record<string, string> = {};
   const newParams = params.forEach((value, key) => {
@@ -28,7 +33,8 @@ async function fakeHamdlerGETsecondlevel(
 }
 async function fakeHamdlerGETthirdlevel(
   request: Request,
-  params: URLSearchParams
+  params: URLSearchParams,
+  routeParams: RouteParams
 ) {
   const paramsObject: Record<string, string> = {};
   const newParams = params.forEach((value, key) => {
@@ -41,7 +47,11 @@ async function fakeHamdlerGETthirdlevel(
   );
 }
 
-async function fakeHamdlerPOST(request: Request, params: URLSearchParams) {
+async function fakeHamdlerPOST(
+  request: Request,
+  params: URLSearchParams,
+  routeParams: RouteParams
+) {
   const bodyText = await request.text();
   console.log(bodyText);
 
@@ -101,7 +111,18 @@ export async function Router(
     //get method
     const reqMethod = request.method;
     //parse url
-    const splittedPath = splitPath(url.pathname);
+    let splittedPath = splitPath(url.pathname);
+    // getting the ids if there are any
+    let routeParams: RouteParams = {};
+    if (splittedPath.length >= 2) {
+      const testPath = splittedPath[splittedPath.length - 1];
+      const isNumeric = /^\d+$/.test(testPath);
+      if (isNumeric) {
+        routeParams = { [splittedPath[splittedPath.length - 2]]: testPath };
+        splittedPath = splittedPath.slice(0, splittedPath.length - 1);
+      }
+    }
+
     //get url keys if exist
     if (splittedPath.length == 0) {
       const rootRoute = routes.find((route) => route.path === "/");
@@ -109,7 +130,8 @@ export async function Router(
       if (rootRoute && methodAllowed) {
         return methodAllowed(
           request,
-          url.searchParams as unknown as URLSearchParams
+          url.searchParams as unknown as URLSearchParams,
+          routeParams
         );
       } else {
         return new Response("Route not found or invalid method");
@@ -158,7 +180,11 @@ export async function Router(
 
     //TODO: check for the search params type
     try {
-      return handler(request, url.searchParams as unknown as URLSearchParams);
+      return handler(
+        request,
+        url.searchParams as unknown as URLSearchParams,
+        routeParams
+      );
     } catch (error: any) {
       return new Response(error.message);
     }
