@@ -1,4 +1,4 @@
-import type { Route, HttpMethods, RouteHandler } from "./types";
+import type { Route, HttpMethods, RouteHandler, RouteParams } from "./types";
 
 function splitPath(path: string) {
   return path.split("/").filter((item) => item !== "");
@@ -13,15 +13,25 @@ export async function Router(
     const url = new URL(request.url);
     const reqMethod = request.method.toUpperCase();
     //parse url
-    const splittedPath = splitPath(url.pathname);
+    let splittedPath = splitPath(url.pathname);
     //get url keys if exist
+    let routeParams: RouteParams = {};
+    if (splittedPath.length >= 2) {
+      const testPath = splittedPath[splittedPath.length - 1];
+      const isNumeric = /^\d+$/.test(testPath);
+      if (isNumeric) {
+        routeParams = { [splittedPath[splittedPath.length - 2]]: testPath };
+        splittedPath = splittedPath.slice(0, splittedPath.length - 1);
+      }
+    }
     if (splittedPath.length == 0) {
       const rootRoute = routes.find((route) => route.path === "/");
       const methodAllowed = rootRoute?.methods[reqMethod as HttpMethods];
       if (rootRoute && methodAllowed) {
         return methodAllowed(
           request,
-          url.searchParams as unknown as URLSearchParams
+          url.searchParams as unknown as URLSearchParams,
+          routeParams
         );
       } else {
         return new Response("Route not found or invalid method");
@@ -69,7 +79,11 @@ export async function Router(
     }
 
     try {
-      return handler(request, url.searchParams as unknown as URLSearchParams);
+      return handler(
+        request,
+        url.searchParams as unknown as URLSearchParams,
+        routeParams
+      );
     } catch (error: any) {
       return new Response(error.message);
     }
